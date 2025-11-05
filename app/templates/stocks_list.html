@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}상품 목록 | WASD FastWMS{% endblock %}
+
+{% block content %}
+<section class="page-header">
+  <h1 class="page-title">상품 목록</h1>
+  <p class="page-desc">검색·카테고리 필터·페이지네이션 연결 전, 목록 뼈대 화면임</p>
+</section>
+
+<!-- 액션 바: 검색/필터 (method=GET로 서버사이드 쿼리 전달) -->
+<form class="toolbar" method="get" action="/stocks">
+  <!-- 카테고리 선택: categories 가 존재할 때만 렌더 -->
+  {% if categories %}
+  <label class="field">
+    <span class="field__label">카테고리</span>
+    <select name="categoryId" class="select">
+      <option value="">전체</option>
+      {% for c in categories %}
+      <option value="{{ c.id }}" {% if categoryId and c.id|string == categoryId|string %}selected{% endif %}>{{ c.name }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endif %}
+
+  <!-- 키워드 검색 -->
+  <label class="field">
+    <span class="field__label">검색어</span>
+    <input type="text" name="keyword" value="{{ keyword or '' }}" placeholder="상품명으로 검색" class="input" />
+  </label>
+
+  <button type="submit" class="btn">검색</button>
+  <a href="/stocks" class="btn btn--ghost">초기화</a>
+  <a href="/stocks/new" class="btn btn--primary">+ 새 상품</a>
+</form>
+
+<!-- 목록 테이블 -->
+<div class="card">
+  <div class="card__body">
+    <table class="table">
+      <thead>
+        <tr>
+          <th style="width:80px;">ID</th>
+          <th>이름</th>
+          <th style="width:160px;">카테고리</th>
+          <th style="width:120px;">재고</th>
+          <th style="width:180px;">동작</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if stocks and stocks|length > 0 %}
+          {% for s in stocks %}
+          <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.name }}</td>
+            <td>
+              {# 카테고리 명 필드명 유연 처리: categoryName -> category_name -> s.category.name #}
+              {% if s.categoryName is defined %}{{ s.categoryName }}
+              {% elif s.category_name is defined %}{{ s.category_name }}
+              {% elif s.category is defined and s.category and s.category.name is defined %}{{ s.category.name }}
+              {% else %}-{% endif %}
+            </td>
+            <td>{{ s.inventory }}</td>
+            <td class="actions">
+              <a class="btn btn--sm" href="/stocks/{{ s.id }}">보기</a>
+              <a class="btn btn--sm" href="/stocks/{{ s.id }}/edit">수정</a>
+              <form method="post" action="/stocks/{{ s.id }}/delete" style="display:inline;" onsubmit="return confirm('정말 삭제할까요?');">
+                <button type="submit" class="btn btn--sm btn--danger">삭제</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="5" class="empty">표시할 데이터가 없습니다.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 페이지네이션: pageInfo(page, totalPages, hasPrev, hasNext) 기준. 없으면 숨김 -->
+{% if pageInfo and pageInfo.totalPages and pageInfo.totalPages > 1 %}
+<nav class="pagination" aria-label="페이지 이동">
+  <a class="page-link {% if not pageInfo.hasPrev %}is-disabled{% endif %}"
+     href="{% if pageInfo.hasPrev %}/stocks?categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}&page={{ pageInfo.page - 1 }}{% else %}#{% endif %}">이전</a>
+
+  <span class="page-status">페이지 {{ pageInfo.page }} / {{ pageInfo.totalPages }}</span>
+
+  <a class="page-link {% if not pageInfo.hasNext %}is-disabled{% endif %}"
+     href="{% if pageInfo.hasNext %}/stocks?categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}&page={{ pageInfo.page + 1 }}{% else %}#{% endif %}">다음</a>
+</nav>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<!-- 화면 전용 스크립트 훅. 나중에 정적 JS 연결 시 사용 예정 -->
+<script>
+  // 페이지 초기화 훅. 별도 동작 없음. 이후 개선 시 사용 예정.
+  document.addEventListener('DOMContentLoaded', () => {
+    // no-op
+  });
+</script>
+{% endblock %}
