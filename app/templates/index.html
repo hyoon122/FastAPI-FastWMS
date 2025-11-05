@@ -1,0 +1,46 @@
+<!-- app/templates/index.html -->
+<!doctype html>
+<html lang="ko">
+<head>
+  <!-- 인코딩 고정: UTF-8 -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>{{ title or "FastWMS 홈" }}</title>
+
+  <!-- 정적 리소스: /static/css/app.css -->
+  <!-- Starlette Jinja: url_for 사용 가능, request 반드시 전달해야 함 -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}">
+</head>
+<body>
+  <!-- 헤더 -->
+  <header class="container">
+    <h1>{{ title or "FastWMS 홈" }}</h1>
+  </header>
+
+  <!-- 본문 -->
+  <main class="container">
+    <section class="card">
+      <h2>템플릿 렌더링 확인</h2>
+      <p>이 페이지가 보이면 Jinja2 템플릿 및 정적 리소스 설정이 정상임.</p>
+      <ul>
+        <li><code>app/main.py</code>의 <code>templates = Jinja2Templates(...)</code> 동작 확인용</li>
+        <li><code>/static/css/app.css</code>와 <code>/static/js/app.js</code> 연결 예정</li>
+      </ul>
+    </section>
+
+    <section class="card">
+      <h2>다음 단계 안내</h2>
+      <p>정적 리소스 테스트를 위해 아래 버튼 클릭 시 콘솔 로그 출력 예정.</p>
+      <button id="ping">정적 스크립트 테스트</button>
+    </section>
+  </main>
+
+  <!-- 푸터 -->
+  <footer class="container">
+    <small>&copy; {{  now().year if now else ""  }} FastWMS</small>
+  </footer>
+
+  <!-- 정적 스크립트: /static/js/app.js -->
+  <script src="{{ url_for('static', path='js/app.js') }}"></script>
+</body>
+</html>
