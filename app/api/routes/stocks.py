@@ -1,128 +1,96 @@
-# app/api/routes/stocks.py
-from typing import Optional
+# 라우터: 상품 목록 화면 렌더링
+# DB 연결 시 실제 목록 조회
+# DB 미연결 시에도 템플릿 최소 렌더 보장
+from typing import Optional, List, Dict
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Request, Query, Depends
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
-from app.core.db import get_db
-from app.models.stock import Stocks  # ORM 가정: Stocks 모델 (id, name, inventory, category_id)
-from app.models.category import Category  # ORM 가정: Category 모델 (id, name)
-from app.schemas.stock import StockCreate, StockUpdate, StockRead
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/api/stocks", tags=["stocks"])
+# DB 세션 유틸의 실제 경로로 변경
+#   화면 캡처 기준: app/db/session.py 존재
+from app.db.session import get_session
 
-# 생성
-@router.post("", response_model=StockRead, status_code=status.HTTP_201_CREATED)
-def create_stock(payload: StockCreate, db: Session = Depends(get_db)):
-    # 카테고리 존재 확인
-    cat = db.query(Category).get(payload.category_id)
-    if not cat:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="카테고리를 찾을 수 없음")
+# 모델 파일 구조에 맞춰 import
+#   화면 캡처 기준: app/models/stock.py, app/models/category.py 존재
+from app.models.stock import Stock
+from app.models.category import Category
 
-    obj = Stocks(name=payload.name, inventory=payload.inventory, category_id=payload.category_id)
-    db.add(obj)
-    db.commit()
-    db.refresh(obj)
+templates = Jinja2Templates(directory="app/templates")
+router = APIRouter(prefix="/stocks", tags=["stocks"])
 
-    # 응답용에 category_name 포함
-    return {
-        "id": obj.id,
-        "name": obj.name,
-        "inventory": obj.inventory,
-        "category_id": obj.category_id,
-        "category_name": cat.name,
-    }
 
-# 목록 조회 (간단 페이징 + 옵션: category_id, query)
-@router.get("", response_model=list[StockRead])
-def list_stocks(
-    category_id: Optional[int] = Query(None, ge=1),
-    query: Optional[str] = Query(None, min_length=1),
-    page: int = Query(1, ge=1),
-    size: int = Query(20, ge=1, le=200),
-    db: Session = Depends(get_db),
+@router.get("", response_class=HTMLResponse)
+async def list_stocks(
+    request: Request,
+    page: int = Query(1, ge=1, description="현재 페이지(1부터 시작)"),
+    categoryId: Optional[int] = Query(None, description="카테고리 필터"),
+    keyword: Optional[str] = Query(None, description="상품명 검색어"),
+    db: AsyncSession = Depends(get_session),   # 조건식 제거: 정식 의존성 주입
 ):
-    q = db.query(Stocks)
+    # 페이지 크기 고정
+    page_size = 20
 
-    if category_id is not None:
-        q = q.filter(Stocks.category_id == category_id)
-
-    if query:
-        like = f"%{query}%"
-        q = q.filter(Stocks.name.ilike(like))
-
-    q = q.order_by(Stocks.id.desc())
-
-    offset = (page - 1) * size
-    rows = q.offset(offset).limit(size).all()
-
-    # category_name 채우기 (관계 미정이라 안전하게 별도 조회)
-    result = []
-    for r in rows:
-        cat = db.query(Category).get(r.category_id)
-        result.append(
-            {
-                "id": r.id,
-                "name": r.name,
-                "inventory": r.inventory,
-                "category_id": r.category_id,
-                "category_name": cat.name if cat else None,
-            }
-        )
-    return result
-
-# 단건 조회
-@router.get("/{stock_id}", response_model=StockRead)
-def get_stock(stock_id: int, db: Session = Depends(get_db)):
-    obj = db.query(Stocks).get(stock_id)
-    if not obj:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="대상을 찾을 수 없음")
-    cat = db.query(Category).get(obj.category_id)
-    return {
-        "id": obj.id,
-        "name": obj.name,
-        "inventory": obj.inventory,
-        "category_id": obj.category_id,
-        "category_name": cat.name if cat else None,
+    # 기본 컨텍스트
+    context: Dict = {
+        "request": request,
+        "stocks": [],
+        "categories": [],
+        "categoryId": categoryId,
+        "keyword": keyword or "",
+        "pageInfo": None,
     }
 
-# 부분 수정
-@router.patch("/{stock_id}", response_model=StockRead)
-def update_stock(stock_id: int, payload: StockUpdate, db: Session = Depends(get_db)):
-    obj = db.query(Stocks).get(stock_id)
-    if not obj:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="대상을 찾을 수 없음")
+    # 1) 카테고리 조회
+    categories = (await db.execute(select(Category).order_by(Category.id.desc()))).scalars().all()
+    context["categories"] = [{"id": c.id, "name": getattr(c, "name", "-")} for c in categories]
 
-    if payload.name is not None:
-        obj.name = payload.name
-    if payload.inventory is not None:
-        obj.inventory = payload.inventory
-    if payload.category_id is not None:
-        # 지정된 카테고리 존재 확인
-        cat = db.query(Category).get(payload.category_id)
-        if not cat:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="지정한 카테고리를 찾을 수 없음")
-        obj.category_id = payload.category_id
+    # 2) where 절 구성
+    filters = []
+    if categoryId:
+        # 모델 필드명이 category_id 라고 가정
+        filters.append(Stock.category_id == categoryId)
+    if keyword:
+        filters.append(Stock.name.ilike(f"%{keyword}%"))
 
-    db.add(obj)
-    db.commit()
-    db.refresh(obj)
+    # 3) 총 개수
+    total = (await db.execute(select(func.count(Stock.id)).where(*filters))).scalar_one() if filters \
+        else (await db.execute(select(func.count(Stock.id)))).scalar_one()
 
-    cat = db.query(Category).get(obj.category_id)
-    return {
-        "id": obj.id,
-        "name": obj.name,
-        "inventory": obj.inventory,
-        "category_id": obj.category_id,
-        "category_name": cat.name if cat else None,
+    # 4) 페이지 계산
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    page = min(max(page, 1), total_pages)
+    offset = (page - 1) * page_size
+
+    # 5) 데이터 조회
+    stmt = select(Stock).order_by(Stock.id.desc())
+    if filters:
+        stmt = stmt.where(*filters)
+    rows: List[Stock] = (await db.execute(stmt.offset(offset).limit(page_size))).scalars().all()
+
+    # 6) 템플릿용 정규화
+    normalized = []
+    for s in rows:
+        category_name = None
+        if hasattr(s, "category") and getattr(s, "category") is not None:
+            category_name = getattr(s.category, "name", None)
+        normalized.append({
+            "id": getattr(s, "id", None),
+            "name": getattr(s, "name", None),
+            "inventory": getattr(s, "inventory", None),
+            "categoryName": category_name,
+        })
+    context["stocks"] = normalized
+
+    # 7) 페이지 정보
+    context["pageInfo"] = {
+        "page": page,
+        "totalPages": total_pages,
+        "hasPrev": page > 1,
+        "hasNext": page < total_pages,
     }
 
-# 삭제
-@router.delete("/{stock_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_stock(stock_id: int, db: Session = Depends(get_db)):
-    obj = db.query(Stocks).get(stock_id)
-    if not obj:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="대상을 찾을 수 없음")
-    db.delete(obj)
-    db.commit()
-    return None
+    return templates.TemplateResponse("stocks_list.html", context)
