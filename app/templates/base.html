@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- 메타 정보 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>{% block title %}WASD FastWMS{% endblock %}</title>
+
+  <!-- 정적 스타일 시트 -->
+  <link rel="stylesheet" href="{{ url_for('static', path='css/app.css') }}" />
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <!-- 상단 내비게이션 -->
+  <header class="app-header">
+    <nav class="nav">
+      <a href="/" class="nav__brand">WASD FastWMS</a>
+      <ul class="nav__menu">
+        <li><a href="/" class="nav__link {% if request and request.url.path == '/' %}is-active{% endif %}">홈</a></li>
+        <li><a href="/stocks" class="nav__link {% if request and request.url.path.startswith('/stocks') %}is-active{% endif %}">상품</a></li>
+        <li><a href="/categories" class="nav__link {% if request and request.url.path.startswith('/categories') %}is-active{% endif %}">카테고리</a></li>
+        <li><a href="/admin" class="nav__link {% if request and request.url.path.startswith('/admin') %}is-active{% endif %}">관리</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- 본문 -->
+  <main class="container">
+    <!-- 공통 알림 영역 -->
+    <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+    {% block content %}
+    <!-- 화면별 본문이 여기로 들어옴 -->
+    {% endblock %}
+  </main>
+
+  <!-- 하단 -->
+  <footer class="app-footer">
+    <small>&copy; {{ now().year }} WASD FastWMS</small>
+  </footer>
+
+  <!-- 공통 스크립트 자리 -->
+  <script src="{{ url_for('static', path='js/app.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
