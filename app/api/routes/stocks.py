@@ -11,11 +11,11 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # DB 세션 유틸의 실제 경로로 변경
-#   화면 캡처 기준: app/db/session.py 존재
+# 화면 캡처 기준: app/db/session.py 존재
 from app.db.session import get_session
 
 # 모델 파일 구조에 맞춰 import
-#   화면 캡처 기준: app/models/stock.py, app/models/category.py 존재
+# 화면 캡처 기준: app/models/stock.py, app/models/category.py 존재
 from app.models.stock import Stock
 from app.models.category import Category
 
