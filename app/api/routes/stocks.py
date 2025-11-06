@@ -10,7 +10,12 @@ from sqlalchemy.orm import Session                 # ← (변경) 동기 세션 
 from app.db.session import get_session             # ← 단일 진실 원천으로 고정
 from app.models.stock import Stock
 from app.models.category import Category
-from app.main import templates
+from pathlib import Path
+from fastapi.templating import Jinja2Templates
+
+# app/templates 를 안전하게 가리키도록 절대경로 계산
+TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 router = APIRouter(tags=["Stocks"])                # ← (변경) 내부 prefix 제거
 

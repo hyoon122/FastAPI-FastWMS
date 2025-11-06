@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Stocks{% endblock %}
+
+{% block content %}
+  <h1>재고 목록</h1>
+
+  {% if categories %}
+    <form method="get" action="">
+      <label>카테고리</label>
+      <select name="categoryId">
+        <option value="">전체</option>
+        {% for c in categories %}
+          <option value="{{ c.id }}" {% if categoryId==c.id %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+
+      <label>검색어</label>
+      <input type="text" name="keyword" value="{{ keyword|default('') }}" />
+      <button type="submit">조회</button>
+    </form>
+  {% endif %}
+
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>ID</th><th>이름</th><th>수량</th><th>카테고리</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in stocks %}
+        <tr>
+          <td>{{ s.id }}</td>
+          <td>{{ s.name }}</td>
+          <td>{{ s.inventory }}</td>
+          <td>{{ s.categoryName or '-' }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4">데이터가 없습니다.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if pageInfo %}
+    <div>
+      페이지 {{ pageInfo.page }} / {{ pageInfo.totalPages }}
+      {% if pageInfo.hasPrev %}
+        <a href="?page={{ pageInfo.page-1 }}&categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}">이전</a>
+      {% endif %}
+      {% if pageInfo.hasNext %}
+        <a href="?page={{ pageInfo.page+1 }}&categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}">다음</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endblock %}
