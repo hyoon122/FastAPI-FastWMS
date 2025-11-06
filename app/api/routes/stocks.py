@@ -96,3 +96,63 @@ def list_stocks(                                   # ← (변경) async → def
 
     # ← (변경) 실제 있는 템플릿 경로로 맞출 것
     return templates.TemplateResponse("stocks/index.html", context)
+
+@router.get("/data")
+def list_stocks_json(
+    page: int = Query(1, ge=1, description="현재 페이지(1부터 시작)"),
+    categoryId: Optional[int] = Query(None, description="카테고리 필터"),
+    keyword: Optional[str] = Query(None, description="상품명 검색어"),
+    db: Session = Depends(get_session),
+):
+    page_size = 20
+
+    # where 절
+    filters = []
+    if categoryId:
+        filters.append(Stock.category_id == categoryId)
+    if keyword:
+        filters.append(Stock.name.ilike(f"%{keyword}%"))
+
+    # 총 개수
+    total = db.execute(
+        select(func.count(Stock.id)).where(*filters) if filters else select(func.count(Stock.id))
+    ).scalar_one()
+
+    # 페이지 계산
+    total_pages = max((total + page_size - 1) // page_size, 1)
+    page = min(max(page, 1), total_pages)
+    offset = (page - 1) * page_size
+
+    # 데이터 조회
+    stmt = select(Stock).order_by(Stock.id.desc())
+    if filters:
+        stmt = stmt.where(*filters)
+    rows = db.execute(stmt.offset(offset).limit(page_size)).scalars().all()
+
+    # 정규화
+    items = []
+    for s in rows:
+        category_name = getattr(getattr(s, "category", None), "name", None)
+        items.append({
+            "id": s.id,
+            "name": s.name,
+            "inventory": s.inventory,
+            "categoryId": s.category_id,
+            "categoryName": category_name,
+        })
+
+    return {
+        "items": items,
+        "pageInfo": {
+            "page": page,
+            "total": total,
+            "totalPages": total_pages,
+            "pageSize": page_size,
+            "hasPrev": page > 1,
+            "hasNext": page < total_pages,
+        },
+        "filters": {
+            "categoryId": categoryId,
+            "keyword": keyword or "",
+        }
+    }
