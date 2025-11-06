@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
 # Alembic/alembic.ini 의 sqlalchemy.url 과 동일하게 맞출 것
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./fastwms.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db")
 
 engine = create_engine(
     DATABASE_URL,

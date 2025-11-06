@@ -2,6 +2,7 @@
 # 라우터: 상품 목록 화면 렌더링
 # DB 연결 시 실제 목록 조회
 # DB 미연결 시에도 템플릿 최소 렌더 보장
+from datetime import datetime
 from typing import Optional, List, Dict
 from fastapi import APIRouter, Request, Query, Depends
 from fastapi.responses import HTMLResponse
@@ -16,6 +17,7 @@ from fastapi.templating import Jinja2Templates
 # app/templates 를 안전하게 가리키도록 절대경로 계산
 TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "templates"
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+templates.env.globals["now"] = datetime.utcnow   # 호출 가능한 함수로 등록
 
 router = APIRouter(tags=["Stocks"])                # ← (변경) 내부 prefix 제거
 
