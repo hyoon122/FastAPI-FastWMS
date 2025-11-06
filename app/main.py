@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles               # 정적 파일 서빙
 from fastapi.templating import Jinja2Templates            # Jinja2 템플릿 엔진
 import pathlib                                            # 경로 계산용
 
-from api.routes import stocks   # 새로 추가
+from app.api.routes import stocks   # 새로 추가
 # (추후 categories, admins 등도 같은 방식으로 import 예정)
 
 # 앱 생성
