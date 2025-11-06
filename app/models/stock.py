@@ -1,9 +1,14 @@
-
 # app/models/stock.py
+from __future__ import annotations
 from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, ForeignKey
 from app.db.base import Base
+
+# 타입체커 전용 임포트
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .category import Category
 
 # 재고 엔티티 정의함
 class Stock(Base):
@@ -32,6 +37,7 @@ class Stock(Base):
 
     # 연관 관계: 재고 → 카테고리(다대일의 다 측)
     category: Mapped["Category"] = relationship(
+        "Category",
         back_populates="stocks",
         lazy="joined",
     )

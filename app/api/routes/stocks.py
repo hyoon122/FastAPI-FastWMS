@@ -1,21 +1,17 @@
+# app/api/routes/stocks.py
 # 라우터: 상품 목록 화면 렌더링
 # DB 연결 시 실제 목록 조회
 # DB 미연결 시에도 템플릿 최소 렌더 보장
 from typing import Optional, List, Dict
-
 from fastapi import APIRouter, Request, Query, Depends
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session                 # ← (변경) 동기 세션 사용
-
 from app.db.session import get_session             # ← 단일 진실 원천으로 고정
-
 from app.models.stock import Stock
 from app.models.category import Category
+from app.main import templates
 
-templates = Jinja2Templates(directory="app/templates")
 router = APIRouter(tags=["Stocks"])                # ← (변경) 내부 prefix 제거
 
 @router.get("", response_class=HTMLResponse)

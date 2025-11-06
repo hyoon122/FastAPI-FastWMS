@@ -1,8 +1,14 @@
 # app/models/category.py
+from __future__ import annotations
 from typing import List, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String
 from app.db.base import Base
+
+# 타입체커 전용 임포트
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .stock import Stock
 
 # 카테고리 엔티티 정의함
 class Category(Base):
@@ -20,6 +26,7 @@ class Category(Base):
     # 연관 관계: 카테고리 → 재고(다대일의 1 측)
     # - Stock 모델에서 back_populates="category"로 대응 예정
     stocks: Mapped[List["Stock"]] = relationship(
+        "Stock",
         back_populates="category",
         cascade="all, delete-orphan",
         passive_deletes=True,
