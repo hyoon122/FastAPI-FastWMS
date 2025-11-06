@@ -7,6 +7,8 @@ from fastapi.templating import Jinja2Templates            # Jinja2 템플릿 엔
 import pathlib                                            # 경로 계산용
 
 from app.api.routes import stocks   # 새로 추가
+from app.api.routes import categories
+
 # (추후 categories, admins 등도 같은 방식으로 import 예정)
 
 # 앱 생성
@@ -14,6 +16,7 @@ app = FastAPI()
 
 # 라우터 등록
 app.include_router(stocks.router, prefix="/api/stocks", tags=["Stocks"])
+app.include_router(categories.router, prefix="/api/categories", tags=["Categories"])
 
 # --- ADD: 경로 기준 설정 (app 디렉터리 기준으로 고정) ---
 BASE_DIR = pathlib.Path(__file__).resolve().parent
