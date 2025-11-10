@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 # 재고 엔티티 정의함
 class Stock(Base):
-    __tablename__ = "stocks"
+    __tablename__ = "Stocks"    # RDS 실제 테이블명과 일치시킴
 
     # 기본키
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -30,7 +30,7 @@ class Stock(Base):
     # 카테고리 외래키
     # - 삭제 시 자식 행 처리: 상위에서 cascade 설정됨
     category_id: Mapped[int] = mapped_column(
-        ForeignKey("categories.id", ondelete="RESTRICT"),
+        ForeignKey("Category.id", ondelete="RESTRICT"),
         nullable=False,
         index=True,
     )

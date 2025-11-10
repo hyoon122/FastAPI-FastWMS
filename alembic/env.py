@@ -10,6 +10,12 @@ from app.db.base import Base  # ← 네 프로젝트 구조에 맞춰 유지
 # Alembic 설정 객체
 config = context.config
 
+# .env 파일에서 DATABASE_URL 불러와 alembic 설정에 주입
+from dotenv import load_dotenv
+import os
+load_dotenv()
+config.set_main_option("sqlalchemy.url", os.getenv("DATABASE_URL"))
+
 # 로깅 설정
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

@@ -1,54 +1,70 @@
 {% extends "base.html" %}
-{% block title %}Stocks{% endblock %}
+{% block title %}상품 목록{% endblock %}
 
 {% block content %}
-  <h1>재고 목록</h1>
+<div class="container">
+  <!-- 페이지 헤더 -->
+  <header class="page-header">
+    <h1>상품 목록</h1>
+  </header>
 
-  {% if categories %}
-    <form method="get" action="">
-      <label>카테고리</label>
-      <select name="categoryId">
-        <option value="">전체</option>
-        {% for c in categories %}
-          <option value="{{ c.id }}" {% if categoryId==c.id %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-
-      <label>검색어</label>
-      <input type="text" name="keyword" value="{{ keyword|default('') }}" />
-      <button type="submit">조회</button>
-    </form>
-  {% endif %}
-
-  <table border="1" cellpadding="6" cellspacing="0">
-    <thead>
-      <tr>
-        <th>ID</th><th>이름</th><th>수량</th><th>카테고리</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in stocks %}
-        <tr>
-          <td>{{ s.id }}</td>
-          <td>{{ s.name }}</td>
-          <td>{{ s.inventory }}</td>
-          <td>{{ s.categoryName or '-' }}</td>
-        </tr>
-      {% else %}
-        <tr><td colspan="4">데이터가 없습니다.</td></tr>
+  <!-- 검색/필터 바 -->
+  <section class="toolbar" id="toolbar">
+    <!-- 카테고리 필터 -->
+    <label for="categorySelect">카테고리</label>
+    <select id="categorySelect" name="categoryId" aria-label="카테고리 선택">
+      <option value="">전체</option>
+      {% for c in (categories|default([])) %}
+      <option value="{{ c.id }}">{{ c.name }}</option>
       {% endfor %}
-    </tbody>
-  </table>
+    </select>
 
-  {% if pageInfo %}
-    <div>
-      페이지 {{ pageInfo.page }} / {{ pageInfo.totalPages }}
-      {% if pageInfo.hasPrev %}
-        <a href="?page={{ pageInfo.page-1 }}&categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}">이전</a>
-      {% endif %}
-      {% if pageInfo.hasNext %}
-        <a href="?page={{ pageInfo.page+1 }}&categoryId={{ categoryId or '' }}&keyword={{ keyword or '' }}">다음</a>
-      {% endif %}
-    </div>
-  {% endif %}
+    <!-- 키워드 검색 -->
+    <label for="keywordInput">검색어</label>
+    <input id="keywordInput" name="keyword" type="text" placeholder="상품명 검색" />
+
+    <button id="searchBtn" type="button">검색</button>
+    <button id="resetBtn" type="button">초기화</button>
+  </section>
+
+  <!-- 목록 테이블 -->
+  <section class="list-container">
+    <table class="table" id="stocksTable" aria-label="상품 목록 테이블"
+           data-endpoint-list="/api/stocks"
+           data-endpoint-search="/api/stocks/search">
+      <thead>
+        <tr>
+          <th scope="col" data-sort="id">ID</th>
+          <th scope="col" data-sort="name">상품명</th>
+          <th scope="col" data-sort="inventory">재고</th>
+          <th scope="col" data-sort="categoryName">카테고리</th>
+          <th scope="col">액션</th>
+        </tr>
+      </thead>
+      <tbody id="stocksTbody">
+        <!-- JS로 행 렌더링 예정 -->
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 페이지네이션 -->
+  <nav class="pagination" id="pagination" aria-label="페이지 네비게이션"
+       data-page="1" data-size="20" data-total-pages="1">
+    <button type="button" id="firstPage" disabled>처음</button>
+    <button type="button" id="prevPage" disabled>이전</button>
+    <span id="pageInfo">1 / 1</span>
+    <button type="button" id="nextPage" disabled>다음</button>
+    <button type="button" id="lastPage" disabled>끝</button>
+  </nav>
+</div>
+
+<!-- 토스트 영역: 후속 단계에서 toast.js로 제어 -->
+<div id="toast-root" aria-live="polite" aria-atomic="true" style="position: fixed; top: 20px; right: 20px;"></div>
+
+{% endblock %}
+
+{% block scripts %}
+  {{ super() }}
+  <!-- 후속 단계에서 제공할 stocks.js 연결 -->
+  <script src="{{ url_for('static', path='/js/stocks.js') }}"></script>
 {% endblock %}

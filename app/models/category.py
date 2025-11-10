@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 # 카테고리 엔티티 정의함
 class Category(Base):
-    __tablename__ = "categories"
+    __tablename__ = "Category"    # RDS 실제 테이블명과 일치시킴
 
     # 기본키
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -28,6 +28,7 @@ class Category(Base):
     stocks: Mapped[List["Stock"]] = relationship(
         "Stock",
         back_populates="category",
+        foreign_keys="Stock.category_id",   # FK가 Stock.category_id임을 명시
         cascade="all, delete-orphan",
         passive_deletes=True,
         lazy="selectin",
